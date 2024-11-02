@@ -7,13 +7,12 @@
     <title>Stacy - Minecraft Server Monitor</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet"> <!-- Fredoka Font -->
     <style>
         /* Global Styling */
         body {
             background-color: #0a0a0a; /* Near Black Background */
             color: #e0e0e0; /* Light Gray Text */
-            font-family: 'Fredoka', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
         }
 
@@ -106,50 +105,6 @@
             font-weight: 700;
         }
 
-        /* Pricing Section */
-        .pricing-section {
-            background-color: #1c1c1c; /* Dark Grey */
-            border-radius: 12px;
-            padding: 2rem;
-            color: #e0e0e0; /* Light Gray */
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-            margin: 2rem 0;
-        }
-
-        .pricing-cards {
-            display: flex;
-            justify-content: center;
-            margin-top: 2rem;
-            flex-wrap: wrap; /* Allows wrapping to new line on smaller screens */
-        }
-
-        .plan {
-            background-color: #333333; /* Darker Grey for Plans */
-            border-radius: 12px;
-            padding: 2rem;
-            width: 300px; /* Fixed Width for Plan Cards */
-            margin: 1rem; /* Margin between plan cards */
-            text-align: center;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s;
-            border: 1px solid #444444; /* Subtle border for better separation */
-        }
-
-        .plan:hover {
-            transform: translateY(-10px);
-        }
-
-        .plan h4 {
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
-            font-weight: bold;
-            color: #00b894; /* Greenish for Titles */
-        }
-
-        .plan .feature {
-            margin: 0.5rem 0;
-        }
-
         /* Video and Setup Section */
         .setup-steps {
             padding-left: 1.5rem;
@@ -202,101 +157,120 @@
         /* Heading Styling */
         .section-heading {
             margin-bottom: 2rem; /* Gap below heading */
-            font-size: 2.5rem;
+            font-size: 2.5rem; /* Larger Heading */
             font-weight: bold;
-            text-align: center; /* Center the heading */
-            color: #ffffff; /* White Heading */
+            color: #e0e0e0; /* Light Gray */
+        }
+
+        /* Footer Styling */
+        footer {
+            background-color: #1c1c1c;
+            color: #e0e0e0;
+            padding: 1.5rem 0;
+            position: relative;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 1rem;
         }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <a class="navbar-brand" href="#">Stacy</a>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="#features">Features</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#pricing">Pricing</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#setup">How to Set Up</a>
-                </li>
-            </ul>
+
+    <!-- Navbar -->
+    <nav class="navbar d-flex justify-content-between align-items-center">
+        <div class="navbar-brand">
+            <img src="https://cdn.infiniteedev.us.kg/assets/stacylogo.png" alt="Stacy Logo" height="40">
+            Stacy
+        </div>
+        <div>
+            <a href="#" class="me-4">Invite</a>
+            <a href="#">Support</a>
         </div>
     </nav>
 
-    <div class="hero-section">
-        <h1>Welcome to Stacy!</h1>
-        <p>Your ultimate Minecraft server monitor.</p>
-        <button class="btn-invite">Get Started</button>
-    </div>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <h1>Monitor Your Minecraft Server</h1>
+        <p>Stay updated with real-time server stats, alerts, and seamless monitoring.</p>
+        <button class="btn-invite mt-4">Invite Stacy Bot</button>
+    </section>
 
-    <div id="features" class="container">
+    <hr>
+
+    <!-- Features Section -->
+    <section class="container py-5 text-center">
         <h2 class="section-heading">Features</h2>
-        <div class="d-flex justify-content-center flex-wrap">
-            <div class="feature-box">
-                <h3>Real-time Monitoring</h3>
-                <p>Monitor your server status in real-time.</p>
+        <div class="row justify-content-center">
+            <div class="col-md-4 mb-4 d-flex justify-content-center">
+                <div class="feature-box">
+                    <h3>Real-Time Updates</h3>
+                    <p>Get instant server status updates with a simple command.</p>
+                </div>
             </div>
-            <div class="feature-box">
-                <h3>Custom Alerts</h3>
-                <p>Get notified of critical server events.</p>
+            <div class="col-md-4 mb-4 d-flex justify-content-center">
+                <div class="feature-box">
+                    <h3>Multiple Server Support</h3>
+                    <p>Monitor multiple Minecraft servers simultaneously.</p>
+                </div>
             </div>
-            <div class="feature-box">
-                <h3>User-friendly Dashboard</h3>
-                <p>Access your server information easily.</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="pricing" class="pricing-section">
-        <h2 class="section-heading">Pricing</h2>
-        <div class="pricing-cards">
-            <div class="plan">
-                <h4>Free Plan</h4>
-                <div class="feature">✔️ Embed updating time: 60 seconds</div>
-                <div class="feature">✔️ Premium MOTD banner: ❌</div>
-                <div class="feature">✔️ Exclusive bot for your server: ❌</div>
-                <h5>Price: Free</h5>
-            </div>
-            <div class="plan">
-                <h4>Premium Plan</h4>
-                <div class="feature">✔️ Embed updating time: 30 seconds</div>
-                <div class="feature">✔️ Premium MOTD banner: ✅</div>
-                <div class="feature">✔️ Exclusive bot for your server: ✅</div>
-                <h5>Price: $2/month <span style="font-size: 0.8rem;">($6 for 3 months upfront)</span></h5>
-                <p>Pay for 3 months upfront and get a dedicated bot just for your server!</p>
+            <div class="col-md-4 mb-4 d-flex justify-content-center">
+                <div class="feature-box">
+                    <h3>Custom Alerts</h3>
+                    <p>Set up custom alerts for server status changes.</p>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div id="setup" class="container">
-        <h2 class="section-heading">How to Set Up</h2>
-        <div class="video-tutorial">
-            <video controls>
-                <source src="tutorial.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
+    <hr>
+
+    <!-- How to Setup Section -->
+    <section class="container py-5 text-center">
+        <h2 class="section-heading">How to Setup</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-6 mb-4">
+                <!-- Embedded Video Tutorial -->
+                <div class="video-tutorial">
+                    <video controls>
+                        <source src="https://cdn.infiniteedev.us.kg/assets/setup.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <ol class="setup-steps">
+                    <li>Invite Stacy Bot to your Discord Server.</li>
+                    <li>Use the <strong><code>/setup</code></strong> command in your desired channel.</li>
+                    <li>Follow the prompts to add your Minecraft server(s).</li>
+                    <li>Enjoy real-time server status updates!</li>
+                </ol>
+            </div>
         </div>
-        <ul class="setup-steps">
-            <li>Sign up for a plan.</li>
-            <li>Configure your server settings.</li>
-            <li>Start monitoring your server.</li>
-        </ul>
-    </div>
+    </section>
 
-    <div class="custom-ui">
-        <img src="stacy-ui.jpg" alt="Stacy Custom UI" class="img-fluid">
-    </div>
+    <hr>
 
-    <footer class="text-center" style="padding: 2rem; background-color: #1c1c1c;">
-        <p>© 2024 Stacy - All Rights Reserved.</p>
+    <!-- Custom UI Section -->
+    <section class="container py-5 text-center">
+        <h2 class="section-heading">Stacy Custom UI</h2>
+        <div class="custom-ui">
+            <img src="https://cdn.infiniteedev.us.kg/assets/stacyui.png" alt="Stacy Custom UI" class="img-fluid">
+        </div>
+    </section>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <p>&copy; 2024 Stacy Bot. All rights reserved.</p>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 5 JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </body>
 
 </html>
