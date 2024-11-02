@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,214 +10,267 @@
     <style>
         /* Global Styling */
         body {
-            background: #2c2e30; /* Dark Gray Background */
+            background-color: #0a0a0a; /* Near Black Background */
             color: #e0e0e0; /* Light Gray Text */
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
         }
+
         /* Navbar Styling */
         .navbar {
-            padding: 1rem 2rem;
-            background-color: #4a4c4f; /* Medium Dark Gray */
-            border-bottom: 1px solid #5e5e5e; /* Light Gray */
+            background-color: #1c1c1c; /* Dark Grey */
+            border-bottom: 2px solid #333333; /* Slightly Lighter Grey */
+            padding: 1.25rem 2rem;
         }
-        .navbar img {
-            height: 40px;
-            margin-right: 10px;
-        }
+
         .navbar-brand {
             font-weight: bold;
-            font-size: 1.25rem;
-            color: #e0e0e0; /* Light Gray */
-            display: flex;
-            align-items: center;
+            font-size: 1.5rem;
+            color: #ffffff; /* White Text */
         }
+
         .navbar a {
             color: #e0e0e0; /* Light Gray */
             text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease-in-out;
+            padding: 0.5rem 1rem;
+            transition: color 0.2s;
         }
+
         .navbar a:hover {
             color: #b0b0b0; /* Hover Color */
         }
+
         /* Hero Section Styling */
         .hero-section {
-            background: #3a3c3e; /* Darker Gray for Hero */
+            background: #1c1c1c; /* Dark Grey for Hero */
             color: #ffffff;
             padding: 5rem 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            margin-bottom: 2rem;
         }
+
         .hero-section h1 {
-            font-size: 3.5rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-        }
-        .hero-section p {
-            font-size: 1.25rem;
+            font-size: 4rem;
+            font-weight: 900;
             margin-bottom: 1.5rem;
         }
+
+        .hero-section p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
         .btn-invite {
-            background-color: #5e5e5e; /* Darker Gray Button */
+            background-color: #333333; /* Darker Grey Button */
             color: #ffffff;
-            padding: 0.75rem 2.5rem;
+            padding: 0.75rem 3rem;
             border-radius: 0.5rem;
             font-weight: 600;
-            transition: background-color 0.3s;
+            border: none;
+            transition: background-color 0.3s, transform 0.3s;
         }
+
         .btn-invite:hover {
-            background-color: #747474; /* Even Darker Gray on Hover */
+            background-color: #444444; /* Slightly Lighter Grey on Hover */
+            transform: translateY(-2px);
         }
+
         /* Features Section */
         .feature-box {
-            background-color: #3a3c3e; /* Dark Background for Boxes */
-            border-radius: 10px;
+            background-color: #1c1c1c; /* Dark Background for Boxes */
+            border-radius: 12px;
             padding: 2rem;
             text-align: center;
             color: #e0e0e0; /* Light Gray Text */
-            transition: transform 0.2s;
+            transition: transform 0.3s;
             height: 250px; /* Fixed Height for Square */
             width: 250px; /* Fixed Width for Square */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            margin: 0 auto; /* Center the boxes */
+            margin: 1rem; /* Spacing Around Boxes */
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
         }
+
         .feature-box:hover {
             transform: translateY(-10px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
         }
+
         .feature-box h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.75rem;
-            font-weight: bold;
+            font-size: 1.6rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
         }
+
         /* Video and Setup Section */
         .setup-steps {
             padding-left: 1.5rem;
             color: #e0e0e0; /* Light Gray */
+            text-align: left; /* Align text to the left */
         }
+
         .setup-steps li {
             margin-bottom: 1rem;
+            position: relative; /* For custom bullet */
+            padding-left: 1.5rem; /* Space for custom bullet */
         }
+
+        .setup-steps li::before {
+            content: '✓'; /* Custom bullet */
+            position: absolute;
+            left: 0;
+            color: #00b894; /* Greenish Bullet */
+            font-weight: bold;
+        }
+
         .video-tutorial video {
-            border-radius: 10px;
+            border-radius: 12px;
             width: 100%;
             max-width: 600px; /* Limit max width of video */
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 1.5rem; /* Space below video */
         }
+
         /* Horizontal Rule */
         hr {
-            border-top: 1px solid #5e5e5e; /* Light Gray */
+            border-top: 1px solid #333333; /* Slightly Lighter Grey */
             margin: 3rem 0;
         }
+
         /* Custom UI Section */
         .custom-ui {
             display: flex;
             justify-content: center;
             margin: 2rem 0;
         }
+
         .custom-ui img {
-            border-radius: 10px;
+            border-radius: 12px;
             max-width: 100%;
             height: auto;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
         }
+
         /* Heading Styling */
         .section-heading {
             margin-bottom: 2rem; /* Gap below heading */
+            font-size: 2.5rem; /* Larger Heading */
+            font-weight: bold;
+            color: #e0e0e0; /* Light Gray */
+        }
+
+        /* Footer Styling */
+        footer {
+            background-color: #1c1c1c;
+            color: #e0e0e0;
+            padding: 1.5rem 0;
+            position: relative;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 1rem;
         }
     </style>
 </head>
+
 <body>
 
-<!-- Navbar -->
-<nav class="navbar d-flex justify-content-between align-items-center">
-    <div class="navbar-brand">
-        <img src="https://cdn.infiniteedev.us.kg/assets/stacylogo.png" alt="Stacy Logo">
-        Stacy
-    </div>
-    <div>
-        <a href="#" class="me-4">Invite</a>
-        <a href="#">Support</a>
-    </div>
-</nav>
+    <!-- Navbar -->
+    <nav class="navbar d-flex justify-content-between align-items-center">
+        <div class="navbar-brand">
+            <img src="https://cdn.infiniteedev.us.kg/assets/stacylogo.png" alt="Stacy Logo" height="40">
+            Stacy
+        </div>
+        <div>
+            <a href="#" class="me-4">Invite</a>
+            <a href="#">Support</a>
+        </div>
+    </nav>
 
-<!-- Hero Section -->
-<section class="hero-section text-center">
-    <h1>Monitor Your Minecraft Server</h1>
-    <p>Stay updated with real-time server stats, alerts, and seamless monitoring.</p>
-    <button class="btn-invite mt-4">Invite Stacy Bot</button>
-</section>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <h1>Monitor Your Minecraft Server</h1>
+        <p>Stay updated with real-time server stats, alerts, and seamless monitoring.</p>
+        <button class="btn-invite mt-4">Invite Stacy Bot</button>
+    </section>
 
-<hr>
+    <hr>
 
-<!-- Features Section -->
-<section class="container py-10 text-center">
-    <div class="row justify-content-center">
-        <div class="col-md-4 mb-4 d-flex justify-content-center">
-            <div class="feature-box">
-                <h3>Real-Time Updates</h3>
-                <p>Get instant server status updates with a simple command.</p>
+    <!-- Features Section -->
+    <section class="container py-5 text-center">
+        <h2 class="section-heading">Features</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-4 mb-4 d-flex justify-content-center">
+                <div class="feature-box">
+                    <h3>Real-Time Updates</h3>
+                    <p>Get instant server status updates with a simple command.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4 d-flex justify-content-center">
+                <div class="feature-box">
+                    <h3>Multiple Server Support</h3>
+                    <p>Monitor multiple Minecraft servers simultaneously.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4 d-flex justify-content-center">
+                <div class="feature-box">
+                    <h3>Custom Alerts</h3>
+                    <p>Set up custom alerts for server status changes.</p>
+                </div>
             </div>
         </div>
-        <div class="col-md-4 mb-4 d-flex justify-content-center">
-            <div class="feature-box">
-                <h3>Multiple Server Support</h3>
-                <p>Monitor multiple Minecraft servers simultaneously.</p>
+    </section>
+
+    <hr>
+
+    <!-- How to Setup Section -->
+    <section class="container py-5 text-center">
+        <h2 class="section-heading">How to Setup</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-6 mb-4">
+                <!-- Embedded Video Tutorial -->
+                <div class="video-tutorial">
+                    <video controls>
+                        <source src="https://cdn.infiniteedev.us.kg/assets/setup.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <ol class="setup-steps">
+                    <li>Invite Stacy Bot to your Discord Server.</li>
+                    <li>Use the <strong><code>/setup</code></strong> command in your desired channel.</li>
+                    <li>Follow the prompts to add your Minecraft server(s).</li>
+                    <li>Enjoy real-time server status updates!</li>
+                </ol>
             </div>
         </div>
-        <div class="col-md-4 mb-4 d-flex justify-content-center">
-            <div class="feature-box">
-                <h3>Custom Alerts</h3>
-                <p>Set up custom alerts for server status changes.</p>
-            </div>
+    </section>
+
+    <hr>
+
+    <!-- Custom UI Section -->
+    <section class="container py-5 text-center">
+        <h2 class="section-heading">Stacy Custom UI</h2>
+        <div class="custom-ui">
+            <img src="https://cdn.infiniteedev.us.kg/assets/stacyui.png" alt="Stacy Custom UI" class="img-fluid">
         </div>
-    </div>
-</section>
+    </section>
 
-<hr>
+    <hr>
 
-<!-- How to Setup Section -->
-<section class="container py-10 text-center">
-    <h2 class="section-heading text-2xl font-bold mb-4">How to Setup</h2>
-    <div class="row justify-content-center">
-        <div class="col-md-6 mb-4">
-            <!-- Embedded Video Tutorial -->
-            <div class="video-tutorial">
-                <video controls>
-                    <source src="https://cdn.infiniteedev.us.kg/assets/setup.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <ol class="setup-steps text-left mx-auto">
-                <li>Invite Stacy Bot to your Discord Server.</li>
-                <li>Use the <strong><code>/setup</code></strong> command in your desired channel.</li>
-                <li>Follow the prompts to add your Minecraft server(s).</li>
-                <li>Enjoy real-time server status updates!</li>
-            </ol>
-        </div>
-    </div>
-</section>
+    <!-- Footer -->
+    <footer class="text-center">
+        <p>&copy; 2024 Stacy Bot. All rights reserved.</p>
+    </footer>
 
-<hr>
-
-<!-- Custom UI Section -->
-<section class="container py-10 text-center">
-    <h2 class="text-2xl font-bold mb-4">Stacy Custom UI</h2>
-    <div class="custom-ui">
-        <img src="https://cdn.infiniteedev.us.kg/assets/stacyui.png" alt="Stacy Custom UI">
-    </div>
-</section>
-
-<!-- Footer -->
-<footer class="text-center py-4" style="background-color: #4a4c4f; color: #e0e0e0;">
-    <p>© 2024 Stacy Bot | All Rights Reserved</p>
-</footer>
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 5 JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </body>
+
 </html>
