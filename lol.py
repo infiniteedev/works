@@ -7,7 +7,6 @@ import aiofiles
 import logging
 from tqdm import tqdm
 from urllib.robotparser import RobotFileParser
-from collections import defaultdict
 
 # Configure logging for better monitoring and debugging
 logging.basicConfig(level=logging.INFO)
@@ -115,16 +114,18 @@ class WebCrawlerBackup:
         Returns:
             str: The local file path to save the resource.
         """
+        # Normalize path and replace multiple slashes with a single one
+        path = path.strip('/')
         if path.endswith(".html"):
-            save_path = os.path.join(self.backup_dir, path.strip('/'))
+            save_path = os.path.join(self.backup_dir, path)
         elif path.endswith((".css", ".js")):
-            save_path = os.path.join(self.backup_dir, 'assets', path.strip('/'))
+            save_path = os.path.join(self.backup_dir, 'assets', path)
         elif path.endswith((".jpg", ".jpeg", ".png", ".gif", ".svg")):
-            save_path = os.path.join(self.backup_dir, 'images', path.strip('/'))
+            save_path = os.path.join(self.backup_dir, 'images', path)
         elif path.endswith((".woff", ".woff2", ".ttf", ".eot")):
-            save_path = os.path.join(self.backup_dir, 'fonts', path.strip('/'))
+            save_path = os.path.join(self.backup_dir, 'fonts', path)
         else:
-            save_path = os.path.join(self.backup_dir, 'other', path.strip('/'))
+            save_path = os.path.join(self.backup_dir, 'other', path)
         return save_path
 
     async def _get_with_retry(self, url):
@@ -187,6 +188,7 @@ class WebCrawlerBackup:
         with tqdm(total=total_files, desc="Downloading files", unit="file") as pbar:
             download_tasks = [self._download_file(url, save_path) for url, save_path in self.files_to_download]
 
+            # Wait for all download tasks to complete
             for task in asyncio.as_completed(download_tasks):
                 await task
                 pbar.update(1)  # Update progress bar for each completed download
@@ -223,13 +225,19 @@ class WebCrawlerBackup:
         """
         return urlparse(url).netloc == urlparse(self.base_url).netloc
 
-if __name__ == "__main__":
-    base_url = "https://docs.frac.gg/introduction"  # Replace with the URL to crawl
-    backup_dir = "frac_backup"  # The directory where files will be saved
 
-    # Instantiate the web crawler and start the crawling and backup process
+if __name__ == "__main__":
+    # Ask for the base URL and backup directory from the user
+    base_url = input("Enter the website URL to crawl (e.g., https://example.com): ").strip()
+    backup_dir = input("Enter the directory to save the backup files (e.g., 'backup'): ").strip()
+
+    # Check if backup directory is provided, if not, set a default value
+    if not backup_dir:
+        backup_dir = "backup"
+
+    # Initialize the web crawler and start crawling and downloading
     crawler = WebCrawlerBackup(base_url, backup_dir)
     asyncio.run(crawler.start_crawl())
 
     logger.info("Crawl and backup completed successfully!")
-    
+            
