@@ -1,11 +1,17 @@
 import os
 import requests
 import zipfile
+import threading
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from pathlib import Path
 import mimetypes
-import time
+from tqdm import tqdm
+from queue import Queue
+from time import sleep
+
+# Number of concurrent threads for downloading
+MAX_THREADS = 10
 
 # Function to create directories if they do not exist
 def create_directories(path):
@@ -33,80 +39,150 @@ def download_file(url, base_url, download_folder):
         parsed_url = urlparse(file_url)
         file_path = os.path.join(download_folder, parsed_url.netloc, parsed_url.path.lstrip("/"))
 
-        # Ensure that directories exist for the file
+        # Ensure the directory exists
         create_directories(os.path.dirname(file_path))
 
+        # Handle special cases for files without extensions (directories)
+        if file_path.endswith('/'):
+            file_path += 'index.html'
+
+        # Save the file
         with open(file_path, 'wb') as file:
             file.write(response.content)
         print(f"Downloaded: {file_url}")
     except requests.exceptions.RequestException as e:
         print(f"Error downloading file {url}: {e}")
 
-# Function to download all files associated with a page
-def crawl_and_download(url, download_folder, visited=set()):
-    # Skip if URL is already visited
-    if url in visited:
-        return
-    visited.add(url)
+# Function to fix links in the HTML page (internal links to local paths)
+def fix_html_links(html, base_url, download_folder):
+    soup = BeautifulSoup(html, "lxml")
 
-    print(f"Crawling: {url}")
+    # Fix internal links in <a href="...">
+    for link in soup.find_all("a", href=True):
+        link_url = link['href']
+        if link_url.startswith('/'):  # Handle relative links
+            link['href'] = os.path.join(download_folder, link_url.lstrip('/'))
+        elif base_url in link_url:  # Handle full internal URLs
+            link['href'] = os.path.join(download_folder, urlparse(link_url).path.lstrip('/'))
+
+    # Fix resources (CSS, JS, Images)
+    for tag in soup.find_all(['img', 'link', 'script'], src=True):
+        resource_url = tag.get('src') or tag.get('href')
+        if resource_url.startswith('/'):  # Handle relative links
+            tag['src'] = os.path.join(download_folder, resource_url.lstrip('/'))
+        elif base_url in resource_url:  # Handle full internal URLs
+            tag['src'] = os.path.join(download_folder, urlparse(resource_url).path.lstrip('/'))
     
-    # Download the page's HTML
-    html_content = download_page(url)
-    if html_content:
-        # Save the HTML page with the correct structure
-        parsed_url = urlparse(url)
-        local_path = os.path.join(download_folder, parsed_url.netloc, parsed_url.path.lstrip('/'))
-        if local_path.endswith('/'):
-            local_path += 'index.html'
-        create_directories(os.path.dirname(local_path))
-        with open(local_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        
-        # Parse HTML to find all links for assets and other pages
-        soup = BeautifulSoup(html_content, 'lxml')
-        base_url = urlparse(url)._replace(path='').geturl()  # Get base URL without path
-        
-        # Find all anchor links, images, CSS, JS, and other resources
-        for tag in soup.find_all(['a', 'img', 'link', 'script']):
-            href = tag.get('href') or tag.get('src')
-            if href:
-                # Only handle valid links (absolute or relative)
-                if href.startswith('http') or href.startswith('/'):
-                    if href.startswith('/'):
-                        href = base_url + href
-                    
-                    # Recursively crawl and download resources like images, CSS, JS, etc.
-                    if href.endswith(('.html', '.htm')):
-                        crawl_and_download(href, download_folder, visited)
-                    else:
-                        download_file(href, base_url, download_folder)
+    return str(soup)
 
-# Function to zip all downloaded files
-def zip_downloaded_files(zip_filename, download_folder):
-    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(download_folder):
-            for file in files:
-                file_path = os.path.join(root, file)
+# Function to handle downloading files and crawling pages with threading
+def crawl_and_download(url, base_url, download_folder, visited, q, lock):
+    page_content = download_page(url)
+    if not page_content:
+        return
+    
+    # Format and fix the HTML page links and resources
+    formatted_html = fix_html_links(page_content, base_url, download_folder)
+
+    # Save the HTML page
+    parsed_url = urlparse(url)
+    page_path = os.path.join(download_folder, parsed_url.netloc, parsed_url.path.lstrip("/"))
+    create_directories(os.path.dirname(page_path))
+
+    if not page_path.endswith('.html'):
+        page_path += '/index.html'
+
+    with open(page_path, 'w', encoding='utf-8') as f:
+        f.write(formatted_html)
+    print(f"Downloaded and saved page: {url}")
+
+    # Parse the page content to find internal links
+    soup = BeautifulSoup(page_content, "lxml")
+    links_to_crawl = []
+
+    for link in soup.find_all("a", href=True):
+        link_url = link['href']
+        if link_url.startswith('/'):  # Relative link
+            link_url = urljoin(base_url, link_url)
+        if link_url not in visited and base_url in link_url:
+            visited.add(link_url)
+            links_to_crawl.append(link_url)
+            q.put(link_url)
+
+    # Find and download resources (CSS, JS, Images)
+    for resource_tag in soup.find_all(['img', 'link', 'script'], src=True):
+        resource_url = resource_tag.get('src') or resource_tag.get('href')
+        download_file(resource_url, base_url, download_folder)
+    
+    # Handle all internal links for crawling in a queue
+    with lock:
+        for link in links_to_crawl:
+            q.put(link)
+
+# Worker thread to handle the crawl queue
+def worker(q, base_url, download_folder, visited, lock):
+    while not q.empty():
+        url = q.get()
+        crawl_and_download(url, base_url, download_folder, visited, q, lock)
+        q.task_done()
+
+# Function to start the crawl and download process
+def download_website(url, download_folder):
+    base_url = urlparse(url).scheme + "://" + urlparse(url).hostname  # For base URL
+
+    # Create the folder where we will save the site
+    create_directories(download_folder)
+
+    # Queue to manage threads
+    q = Queue()
+    visited = set()
+    visited.add(url)
+    lock = threading.Lock()
+
+    # Start crawling and downloading resources
+    q.put(url)
+
+    # Thread pool to handle concurrent downloading
+    threads = []
+    for _ in range(MAX_THREADS):
+        thread = threading.Thread(target=worker, args=(q, base_url, download_folder, visited, lock))
+        thread.daemon = True
+        thread.start()
+        threads.append(thread)
+
+    # Wait for the queue to be processed
+    q.join()
+
+    # Wait for all threads to finish
+    for thread in threads:
+        thread.join()
+
+    print("Download completed!")
+
+# Function to zip the downloaded files
+def zip_website_folder(download_folder, output_zip_file):
+    # Zip the directory into a .zip file
+    print("Compressing the website folder into a zip file...")
+    with zipfile.ZipFile(output_zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for foldername, subfolders, filenames in os.walk(download_folder):
+            for filename in filenames:
+                file_path = os.path.join(foldername, filename)
                 zipf.write(file_path, os.path.relpath(file_path, download_folder))
 
-# Main function to start the crawling and zipping process
-def main(url, download_folder, zip_filename):
-    # Ensure the download folder exists
-    create_directories(download_folder)
-    
-    # Start crawling from the root URL
-    crawl_and_download(url, download_folder)
-    
-    # Create the zip archive from the downloaded content
-    zip_downloaded_files(zip_filename, download_folder)
-    print(f"Website content zipped into {zip_filename}")
+    print(f"Website has been compressed into {output_zip_file}")
 
-# Example Usage
+# Main function to download and zip the website
+def main():
+    website_url = "https://docs.frac.gg/introduction"  # Replace with your website URL
+    download_folder = "frac_website"  # Folder to save the website files
+    output_zip_file = "frac.zip"  # Output zip file
+
+    # Start the download process
+    download_website(website_url, download_folder)
+
+    # Compress the website folder into a zip file
+    zip_website_folder(download_folder, output_zip_file)
+
 if __name__ == "__main__":
-    website_url = "https://docs.frac.gg/introduction"  # Replace with the target website URL
-    download_folder = "downloaded_site"  # Folder to store the files
-    zip_filename = "frac.zip"  # Output zip file
-    
-    # Run the script
-    main(website_url, download_folder, zip_filename)
+    main()
+              
