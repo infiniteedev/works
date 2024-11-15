@@ -1,18 +1,15 @@
 import os
 import requests
-import zipfile
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from pathlib import Path
-from time import sleep
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import mimetypes
 from tqdm import tqdm
 
 # Constants
-MAX_THREADS = 100  # Adjust number of concurrent downloads as needed
-MAX_RETRIES = 5    # Number of retries for failed downloads
-RETRY_DELAY = 2    # Delay between retries (in seconds)
+MAX_THREADS = 50  # Number of concurrent downloads (adjust as needed)
+MAX_RETRIES = 3   # Number of retries for failed downloads
+RETRY_DELAY = 2   # Delay between retries (in seconds)
 
 # Function to create directories if they don't exist
 def create_directories(path):
@@ -36,7 +33,7 @@ def download_page(url):
                 print(f"Failed to download page: {url}")
                 return None
 
-# Function to download any file (CSS, JS, Images, Fonts, PDFs, etc.)
+# Function to download any file (CSS, JS, Images, Fonts, etc.)
 def download_file(url, base_url, download_folder, progress_bar):
     attempt = 0
     while attempt < MAX_RETRIES:
@@ -96,7 +93,7 @@ def fix_html_links(html, base_url, download_folder):
 
     return str(soup)
 
-# Function to crawl and download all pages and resources
+# Function to download and process a page and its resources
 def crawl_and_download(url, base_url, download_folder, visited, executor, progress_bar):
     page_content = download_page(url)
     if not page_content:
@@ -168,28 +165,13 @@ def download_website(url, download_folder):
 
     print("Download completed!")
 
-# Function to zip the downloaded files
-def zip_website_folder(download_folder, output_zip_file):
-    print("Compressing the website folder into a zip file...")
-    with zipfile.ZipFile(output_zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for foldername, subfolders, filenames in os.walk(download_folder):
-            for filename in filenames:
-                file_path = os.path.join(foldername, filename)
-                zipf.write(file_path, os.path.relpath(file_path, download_folder))
-
-    print(f"Website has been compressed into {output_zip_file}")
-
-# Main function to download and zip the website
+# Main function to download the website
 def main():
     website_url = "https://docs.frac.gg/introduction"  # Replace with your website URL
     download_folder = "frac_website"  # Folder to save the website files
-    output_zip_file = "frac.zip"  # Output zip file
 
     # Start the download process
     download_website(website_url, download_folder)
-
-    # Compress the website folder into a zip file
-    zip_website_folder(download_folder, output_zip_file)
 
 if __name__ == "__main__":
     main()
