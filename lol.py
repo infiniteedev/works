@@ -5,13 +5,15 @@ import threading
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from pathlib import Path
+from time import sleep
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import mimetypes
 from tqdm import tqdm
-from queue import Queue
-from time import sleep
 
-# Number of concurrent threads for downloading
-MAX_THREADS = 10
+# Constants for configuration
+MAX_THREADS = 500  # Scale up to 100-500 concurrent threads
+MAX_RETRIES = 3  # Number of retries for failed downloads
+RETRY_DELAY = 2  # Delay between retries (in seconds)
 
 # Function to create directories if they do not exist
 def create_directories(path):
@@ -20,38 +22,54 @@ def create_directories(path):
 
 # Function to download a page (HTML)
 def download_page(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise error for bad status codes
-        return response.text
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading {url}: {e}")
-        return None
+    attempt = 0
+    while attempt < MAX_RETRIES:
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()  # Raise error for bad status codes
+            return response.text
+        except requests.exceptions.RequestException as e:
+            attempt += 1
+            print(f"Error downloading page {url} (Attempt {attempt}/{MAX_RETRIES}): {e}")
+            if attempt < MAX_RETRIES:
+                sleep(RETRY_DELAY)
+            else:
+                print(f"Failed to download page: {url}")
+                return None
 
 # Function to download any file (CSS, JS, Images, etc.)
 def download_file(url, base_url, download_folder):
-    try:
-        file_url = urljoin(base_url, url)
-        response = requests.get(file_url)
-        response.raise_for_status()
+    attempt = 0
+    while attempt < MAX_RETRIES:
+        try:
+            file_url = urljoin(base_url, url)
+            response = requests.get(file_url, timeout=10)
+            response.raise_for_status()
 
-        # Get the file name and prepare the path for saving
-        parsed_url = urlparse(file_url)
-        file_path = os.path.join(download_folder, parsed_url.netloc, parsed_url.path.lstrip("/"))
+            # Get the file name and prepare the path for saving
+            parsed_url = urlparse(file_url)
+            file_path = os.path.join(download_folder, parsed_url.netloc, parsed_url.path.lstrip("/"))
 
-        # Ensure the directory exists
-        create_directories(os.path.dirname(file_path))
+            # Ensure the directory exists
+            create_directories(os.path.dirname(file_path))
 
-        # Handle special cases for files without extensions (directories)
-        if file_path.endswith('/'):
-            file_path += 'index.html'
+            # Handle special cases for files without extensions (directories)
+            if file_path.endswith('/'):
+                file_path += 'index.html'
 
-        # Save the file
-        with open(file_path, 'wb') as file:
-            file.write(response.content)
-        print(f"Downloaded: {file_url}")
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading file {url}: {e}")
+            # Save the file
+            with open(file_path, 'wb') as file:
+                file.write(response.content)
+            print(f"Downloaded: {file_url}")
+            return True
+        except requests.exceptions.RequestException as e:
+            attempt += 1
+            print(f"Error downloading file {url} (Attempt {attempt}/{MAX_RETRIES}): {e}")
+            if attempt < MAX_RETRIES:
+                sleep(RETRY_DELAY)
+            else:
+                print(f"Failed to download file: {url}")
+                return False
 
 # Function to fix links in the HTML page (internal links to local paths)
 def fix_html_links(html, base_url, download_folder):
@@ -75,8 +93,8 @@ def fix_html_links(html, base_url, download_folder):
     
     return str(soup)
 
-# Function to handle downloading files and crawling pages with threading
-def crawl_and_download(url, base_url, download_folder, visited, q, lock):
+# Function to download and process a page and its resources
+def crawl_and_download(url, base_url, download_folder, visited, executor):
     page_content = download_page(url)
     if not page_content:
         return
@@ -100,6 +118,7 @@ def crawl_and_download(url, base_url, download_folder, visited, q, lock):
     soup = BeautifulSoup(page_content, "lxml")
     links_to_crawl = []
 
+    # Queue links to be crawled concurrently
     for link in soup.find_all("a", href=True):
         link_url = link['href']
         if link_url.startswith('/'):  # Relative link
@@ -107,24 +126,20 @@ def crawl_and_download(url, base_url, download_folder, visited, q, lock):
         if link_url not in visited and base_url in link_url:
             visited.add(link_url)
             links_to_crawl.append(link_url)
-            q.put(link_url)
 
-    # Find and download resources (CSS, JS, Images)
+    # Download resources (CSS, JS, Images) concurrently
+    futures = []
     for resource_tag in soup.find_all(['img', 'link', 'script'], src=True):
         resource_url = resource_tag.get('src') or resource_tag.get('href')
-        download_file(resource_url, base_url, download_folder)
-    
-    # Handle all internal links for crawling in a queue
-    with lock:
-        for link in links_to_crawl:
-            q.put(link)
+        futures.append(executor.submit(download_file, resource_url, base_url, download_folder))
 
-# Worker thread to handle the crawl queue
-def worker(q, base_url, download_folder, visited, lock):
-    while not q.empty():
-        url = q.get()
-        crawl_and_download(url, base_url, download_folder, visited, q, lock)
-        q.task_done()
+    # Add internal links to the executor for crawling
+    for link in links_to_crawl:
+        futures.append(executor.submit(crawl_and_download, link, base_url, download_folder, visited, executor))
+
+    # Wait for all downloads to finish
+    for future in futures:
+        future.result()
 
 # Function to start the crawl and download process
 def download_website(url, download_folder):
@@ -133,35 +148,19 @@ def download_website(url, download_folder):
     # Create the folder where we will save the site
     create_directories(download_folder)
 
-    # Queue to manage threads
-    q = Queue()
+    # Set of visited URLs
     visited = set()
     visited.add(url)
-    lock = threading.Lock()
 
-    # Start crawling and downloading resources
-    q.put(url)
-
-    # Thread pool to handle concurrent downloading
-    threads = []
-    for _ in range(MAX_THREADS):
-        thread = threading.Thread(target=worker, args=(q, base_url, download_folder, visited, lock))
-        thread.daemon = True
-        thread.start()
-        threads.append(thread)
-
-    # Wait for the queue to be processed
-    q.join()
-
-    # Wait for all threads to finish
-    for thread in threads:
-        thread.join()
+    # ThreadPoolExecutor for concurrent downloads
+    with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+        # Start the download process with the root URL
+        executor.submit(crawl_and_download, url, base_url, download_folder, visited, executor)
 
     print("Download completed!")
 
 # Function to zip the downloaded files
 def zip_website_folder(download_folder, output_zip_file):
-    # Zip the directory into a .zip file
     print("Compressing the website folder into a zip file...")
     with zipfile.ZipFile(output_zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for foldername, subfolders, filenames in os.walk(download_folder):
@@ -185,4 +184,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-              
+            
