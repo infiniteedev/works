@@ -1,7 +1,6 @@
 import os
 import requests
 import zipfile
-import threading
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from pathlib import Path
@@ -10,12 +9,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import mimetypes
 from tqdm import tqdm
 
-# Constants for configuration
-MAX_THREADS = 500  # Scale up to 100-500 concurrent threads
-MAX_RETRIES = 3  # Number of retries for failed downloads
-RETRY_DELAY = 2  # Delay between retries (in seconds)
+# Constants
+MAX_THREADS = 100  # Adjust number of concurrent downloads as needed
+MAX_RETRIES = 5    # Number of retries for failed downloads
+RETRY_DELAY = 2    # Delay between retries (in seconds)
 
-# Function to create directories if they do not exist
+# Function to create directories if they don't exist
 def create_directories(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -37,13 +36,13 @@ def download_page(url):
                 print(f"Failed to download page: {url}")
                 return None
 
-# Function to download any file (CSS, JS, Images, etc.)
-def download_file(url, base_url, download_folder):
+# Function to download any file (CSS, JS, Images, Fonts, PDFs, etc.)
+def download_file(url, base_url, download_folder, progress_bar):
     attempt = 0
     while attempt < MAX_RETRIES:
         try:
             file_url = urljoin(base_url, url)
-            response = requests.get(file_url, timeout=10)
+            response = requests.get(file_url, timeout=10, stream=True)
             response.raise_for_status()
 
             # Get the file name and prepare the path for saving
@@ -57,9 +56,13 @@ def download_file(url, base_url, download_folder):
             if file_path.endswith('/'):
                 file_path += 'index.html'
 
-            # Save the file
+            # Download the file in chunks and save it
             with open(file_path, 'wb') as file:
-                file.write(response.content)
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        file.write(chunk)
+            
+            progress_bar.update(1)  # Update the progress bar for each file downloaded
             print(f"Downloaded: {file_url}")
             return True
         except requests.exceptions.RequestException as e:
@@ -71,7 +74,7 @@ def download_file(url, base_url, download_folder):
                 print(f"Failed to download file: {url}")
                 return False
 
-# Function to fix links in the HTML page (internal links to local paths)
+# Function to fix links in HTML pages (internal links to local paths)
 def fix_html_links(html, base_url, download_folder):
     soup = BeautifulSoup(html, "lxml")
 
@@ -83,18 +86,18 @@ def fix_html_links(html, base_url, download_folder):
         elif base_url in link_url:  # Handle full internal URLs
             link['href'] = os.path.join(download_folder, urlparse(link_url).path.lstrip('/'))
 
-    # Fix resources (CSS, JS, Images)
+    # Fix resources (CSS, JS, Images, Fonts, etc.)
     for tag in soup.find_all(['img', 'link', 'script'], src=True):
         resource_url = tag.get('src') or tag.get('href')
         if resource_url.startswith('/'):  # Handle relative links
             tag['src'] = os.path.join(download_folder, resource_url.lstrip('/'))
         elif base_url in resource_url:  # Handle full internal URLs
             tag['src'] = os.path.join(download_folder, urlparse(resource_url).path.lstrip('/'))
-    
+
     return str(soup)
 
-# Function to download and process a page and its resources
-def crawl_and_download(url, base_url, download_folder, visited, executor):
+# Function to crawl and download all pages and resources
+def crawl_and_download(url, base_url, download_folder, visited, executor, progress_bar):
     page_content = download_page(url)
     if not page_content:
         return
@@ -127,18 +130,18 @@ def crawl_and_download(url, base_url, download_folder, visited, executor):
             visited.add(link_url)
             links_to_crawl.append(link_url)
 
-    # Download resources (CSS, JS, Images) concurrently
+    # Download resources (CSS, JS, Images, Fonts) concurrently
     futures = []
     for resource_tag in soup.find_all(['img', 'link', 'script'], src=True):
         resource_url = resource_tag.get('src') or resource_tag.get('href')
-        futures.append(executor.submit(download_file, resource_url, base_url, download_folder))
+        futures.append(executor.submit(download_file, resource_url, base_url, download_folder, progress_bar))
 
     # Add internal links to the executor for crawling
     for link in links_to_crawl:
-        futures.append(executor.submit(crawl_and_download, link, base_url, download_folder, visited, executor))
+        futures.append(executor.submit(crawl_and_download, link, base_url, download_folder, visited, executor, progress_bar))
 
     # Wait for all downloads to finish
-    for future in futures:
+    for future in as_completed(futures):
         future.result()
 
 # Function to start the crawl and download process
@@ -154,8 +157,14 @@ def download_website(url, download_folder):
 
     # ThreadPoolExecutor for concurrent downloads
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+        # Set a rough estimate of the number of files to download for the progress bar
+        total_files = 1000
+        progress_bar = tqdm(total=total_files, desc="Downloading Website", unit="file")
+
         # Start the download process with the root URL
-        executor.submit(crawl_and_download, url, base_url, download_folder, visited, executor)
+        executor.submit(crawl_and_download, url, base_url, download_folder, visited, executor, progress_bar)
+
+        progress_bar.close()
 
     print("Download completed!")
 
