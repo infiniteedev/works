@@ -8,21 +8,21 @@ import logging
 from tqdm import tqdm
 from urllib.robotparser import RobotFileParser
 
-# Configure logging for better monitoring and debugging
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class WebCrawlerBackup:
     def __init__(self, base_url, backup_dir, max_retries=3, delay=1, max_connections=10):
         """
-        Initialize the web crawler for backing up a website.
+        Initialize the web crawler to backup a website.
 
         Args:
             base_url (str): The base URL of the website to crawl.
             backup_dir (str): The local directory to save the backup files.
-            max_retries (int): Maximum number of retry attempts for failed requests.
-            delay (float): Delay between retries to prevent overloading the server.
-            max_connections (int): Maximum number of concurrent connections for downloading files.
+            max_retries (int): Number of retries for failed requests.
+            delay (float): Delay between retries.
+            max_connections (int): Maximum number of concurrent connections for downloading.
         """
         self.base_url = base_url
         self.backup_dir = backup_dir
@@ -31,7 +31,7 @@ class WebCrawlerBackup:
         self.max_retries = max_retries
         self.delay = delay
         self.max_connections = max_connections
-        self.semaphore = asyncio.Semaphore(self.max_connections)  # Limit the number of concurrent downloads
+        self.semaphore = asyncio.Semaphore(self.max_connections)  # Limit concurrent downloads
         self.robot_parser = RobotFileParser()
         self._initialize_robot_parser()
 
@@ -45,18 +45,18 @@ class WebCrawlerBackup:
             logger.warning(f"Error reading robots.txt: {str(e)}")
 
     async def start_crawl(self):
-        """Start the website crawling process and file backup."""
+        """Start crawling the website and downloading files."""
         if not os.path.exists(self.backup_dir):
             os.makedirs(self.backup_dir)
 
-        # Crawl the website to discover all files to download
+        # Start crawling the website
         await self._crawl_page(self.base_url)
 
-        # Download the discovered files with a progress bar
+        # Download files discovered during the crawl
         await self._download_files()
 
     async def _crawl_page(self, url):
-        """Crawl a webpage, extract links, and find resources to download.
+        """Crawl a webpage, extract links and resources to download.
 
         Args:
             url (str): The URL of the webpage to crawl.
@@ -72,10 +72,10 @@ class WebCrawlerBackup:
                 return
             soup = BeautifulSoup(response, "html.parser")
 
-            # Add the HTML page to the download list
+            # Add HTML page to the download list
             self._add_file_for_download(url, response)
 
-            # Extract all internal links (pages to crawl)
+            # Extract internal links (pages to crawl)
             links = soup.find_all("a", href=True)
             for link in links:
                 href = link["href"]
@@ -83,14 +83,14 @@ class WebCrawlerBackup:
                 if self._is_internal_url(full_url):
                     await self._crawl_page(full_url)
 
-            # Extract static assets (images, CSS, JS, etc.)
+            # Extract static resources (images, CSS, JS, etc.)
             await self._extract_assets(soup, url)
 
         except Exception as e:
             logger.error(f"Error while crawling {url}: {str(e)}")
 
     def _add_file_for_download(self, url, content=None):
-        """Add a file (HTML page or other resource) to the download queue.
+        """Add a file (HTML page or other resource) to the list of files to download.
 
         Args:
             url (str): The URL of the resource.
@@ -99,14 +99,14 @@ class WebCrawlerBackup:
         parsed_url = urlparse(url)
         path = parsed_url.path if parsed_url.path != '' else 'index.html'
 
-        # Save files to their respective directories based on URL structure
+        # Normalize path by removing leading slash
         save_path = self._get_save_path(path)
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)  # Ensure directory structure exists
 
         self.files_to_download.add((url, save_path))
 
     def _get_save_path(self, path):
-        """Determine the save path for a file based on its type.
+        """Generate the local path where the file will be saved.
 
         Args:
             path (str): The URL path of the file.
@@ -114,28 +114,23 @@ class WebCrawlerBackup:
         Returns:
             str: The local file path to save the resource.
         """
-        # Normalize path and replace multiple slashes with a single one
+        # Strip leading slashes and avoid empty paths
         path = path.strip('/')
-        if path.endswith(".html"):
-            save_path = os.path.join(self.backup_dir, path)
-        elif path.endswith((".css", ".js")):
-            save_path = os.path.join(self.backup_dir, 'assets', path)
-        elif path.endswith((".jpg", ".jpeg", ".png", ".gif", ".svg")):
-            save_path = os.path.join(self.backup_dir, 'images', path)
-        elif path.endswith((".woff", ".woff2", ".ttf", ".eot")):
-            save_path = os.path.join(self.backup_dir, 'fonts', path)
-        else:
-            save_path = os.path.join(self.backup_dir, 'other', path)
+        if not path:
+            path = 'index.html'
+        
+        # Construct the full save path within the backup directory
+        save_path = os.path.join(self.backup_dir, path)
         return save_path
 
     async def _get_with_retry(self, url):
-        """Attempt to GET the URL with retries and a delay in case of failure.
+        """Retrieve a URL with retry mechanism in case of failure.
 
         Args:
             url (str): The URL to retrieve.
 
         Returns:
-            str: The content of the page if successful, else None.
+            str: The HTML content if successful, else None.
         """
         attempts = 0
         while attempts < self.max_retries:
@@ -154,11 +149,11 @@ class WebCrawlerBackup:
         return None
 
     async def _download_file(self, url, save_path):
-        """Download a file asynchronously and save it in the correct directory.
+        """Download a file and save it locally.
 
         Args:
             url (str): The URL of the file.
-            save_path (str): The local path where the file should be saved.
+            save_path (str): The local path where the file will be saved.
         """
         async with self.semaphore:
             try:
@@ -178,36 +173,36 @@ class WebCrawlerBackup:
                 logger.error(f"Error downloading {url}: {str(e)}")
 
     async def _download_files(self):
-        """Download all files concurrently with a progress bar showing status."""
+        """Download all discovered files concurrently with a progress bar."""
         total_files = len(self.files_to_download)
         if total_files == 0:
             logger.info("No files to download.")
             return
 
-        # Set up a progress bar
+        # Set up progress bar
         with tqdm(total=total_files, desc="Downloading files", unit="file") as pbar:
             download_tasks = [self._download_file(url, save_path) for url, save_path in self.files_to_download]
 
-            # Wait for all download tasks to complete
+            # Wait for all downloads to complete
             for task in asyncio.as_completed(download_tasks):
                 await task
                 pbar.update(1)  # Update progress bar for each completed download
 
     async def _extract_assets(self, soup, base_url):
-        """Extract resources (images, CSS, JS) and schedule them for download.
+        """Extract all resources (images, CSS, JS, etc.) from the page.
 
         Args:
             soup (BeautifulSoup): The parsed HTML page.
             base_url (str): The base URL to resolve relative paths.
         """
-        # Extract all resource links (images, CSS, JS)
+        # Extract images, CSS, and JS
         for tag in soup.find_all(['img', 'link', 'script'], src=True):
             src = tag.get('src') or tag.get('href')
             full_url = urljoin(base_url, src)
             if self._is_internal_url(full_url):
                 self._add_file_for_download(full_url)
 
-        # Also extract links from <a> tags and other href attributes
+        # Also extract links from <a> tags
         for tag in soup.find_all('a', href=True):
             href = tag['href']
             full_url = urljoin(base_url, href)
@@ -215,7 +210,7 @@ class WebCrawlerBackup:
                 self._add_file_for_download(full_url)
 
     def _is_internal_url(self, url):
-        """Check if a URL is internal, based on the base URL.
+        """Check if the URL is internal (same domain).
 
         Args:
             url (str): The URL to check.
@@ -231,7 +226,7 @@ if __name__ == "__main__":
     base_url = input("Enter the website URL to crawl (e.g., https://example.com): ").strip()
     backup_dir = input("Enter the directory to save the backup files (e.g., 'backup'): ").strip()
 
-    # Check if backup directory is provided, if not, set a default value
+    # Default backup directory if none is provided
     if not backup_dir:
         backup_dir = "backup"
 
