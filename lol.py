@@ -7,6 +7,7 @@ import aiofiles
 import logging
 from tqdm import tqdm
 from urllib.robotparser import RobotFileParser
+import mimetypes
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -67,6 +68,11 @@ class WebCrawlerBackup:
         self.visited_urls.add(url)
 
         try:
+            # Check if URL is allowed by robots.txt before crawling
+            if not self.robot_parser.can_fetch('*', url):
+                logger.warning(f"Skipping {url} due to robots.txt rules.")
+                return
+
             response = await self._get_with_retry(url)
             if response is None:
                 return
@@ -119,6 +125,11 @@ class WebCrawlerBackup:
         if not path:
             path = 'index.html'
         
+        # Check MIME type based on URL or file extension
+        if not mimetypes.guess_type(path)[0]:
+            # If MIME type can't be guessed, default to 'text/html'
+            path = f"{path}.html" if '.' not in path else path
+        
         # Construct the full save path within the backup directory
         save_path = os.path.join(self.backup_dir, path)
         return save_path
@@ -138,7 +149,7 @@ class WebCrawlerBackup:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url) as response:
                         if response.status == 200:
-                            return await response.text()
+                            return await response.text(), response.headers.get('Content-Type')
                         else:
                             logger.warning(f"Failed to retrieve {url}, Status: {response.status}")
                             attempts += 1
@@ -146,7 +157,7 @@ class WebCrawlerBackup:
                 logger.error(f"Error fetching {url}: {str(e)}")
                 attempts += 1
             await asyncio.sleep(self.delay)
-        return None
+        return None, None
 
     async def _download_file(self, url, save_path):
         """Download a file and save it locally.
@@ -219,20 +230,4 @@ class WebCrawlerBackup:
             bool: True if the URL is internal, False otherwise.
         """
         return urlparse(url).netloc == urlparse(self.base_url).netloc
-
-
-if __name__ == "__main__":
-    # Ask for the base URL and backup directory from the user
-    base_url = input("Enter the website URL to crawl (e.g., https://example.com): ").strip()
-    backup_dir = input("Enter the directory to save the backup files (e.g., 'backup'): ").strip()
-
-    # Default backup directory if none is provided
-    if not backup_dir:
-        backup_dir = "backup"
-
-    # Initialize the web crawler and start crawling and downloading
-    crawler = WebCrawlerBackup(base_url, backup_dir)
-    asyncio.run(crawler.start_crawl())
-
-    logger.info("Crawl and backup completed successfully!")
-            
+        
