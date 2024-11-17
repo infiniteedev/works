@@ -168,5 +168,5 @@ def start_crawl(url, backup_folder="fractal"):
 
 # Main script
 if __name__ == "__main__":
-    website_url = input("Enter the website URL (e.g., https://frac.gg): ")
+    website_url = input("https://frac.gg")
     start_crawl(website_url)
