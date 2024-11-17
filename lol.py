@@ -73,7 +73,7 @@ class WebCrawlerBackup:
                 logger.warning(f"Skipping {url} due to robots.txt rules.")
                 return
 
-            response = await self._get_with_retry(url)
+            response, _ = await self._get_with_retry(url)
             if response is None:
                 return
             soup = BeautifulSoup(response, "html.parser")
@@ -230,4 +230,12 @@ class WebCrawlerBackup:
             bool: True if the URL is internal, False otherwise.
         """
         return urlparse(url).netloc == urlparse(self.base_url).netloc
-        
+
+# Example usage
+async def main():
+    crawler = WebCrawlerBackup("https://example.com", "./backup")
+    await crawler.start_crawl()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+            
