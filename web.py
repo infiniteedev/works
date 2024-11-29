@@ -36,14 +36,18 @@ def get_terminal_color(r, g, b):
     else:
         return Fore.WHITE
 
-# Function to download and process the image from the URL
-def download_image(image_url):
-    response = requests.get(image_url)
-    if response.status_code == 200:
-        image = Image.open(BytesIO(response.content))
+# Function to download and process the image from the URL or file path
+def download_image(image_path):
+    if image_path.startswith('http'):  # If it's a URL
+        response = requests.get(image_path)
+        if response.status_code == 200:
+            image = Image.open(BytesIO(response.content))
+            return image
+        else:
+            raise Exception(f"Failed to download image, status code: {response.status_code}")
+    else:  # If it's a local file path
+        image = Image.open(image_path)
         return image
-    else:
-        raise Exception(f"Failed to download image, status code: {response.status_code}")
 
 # Function to convert image to ASCII art
 def image_to_ascii(image, new_width=100):
@@ -67,15 +71,15 @@ def image_to_ascii(image, new_width=100):
     return "\n".join(ascii_image), "\n".join(ascii_image_plain)
 
 # Function to save ASCII art to a text file
-def save_ascii_to_file(ascii_art, filename="ascii_image.txt"):
+def save_ascii_to_file(ascii_art, filename="vanilla.txt"):
     with open(filename, "w") as file:
         file.write(ascii_art)
     print(f"ASCII art saved to {filename}")
 
 # Main function to run the program
-def main(image_url, output_file="ascii_image.txt"):
+def main(image_path="https://s3.mcjars.app/icons/vanilla.png", output_file="vanilla.txt"):
     try:
-        image = download_image(image_url)
+        image = download_image(image_path)
         ascii_image_colored, ascii_image_plain = image_to_ascii(image)
         
         # Print colored ASCII art in the terminal
@@ -88,10 +92,6 @@ def main(image_url, output_file="ascii_image.txt"):
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python ascii_image.py <image_url> [output_file]")
-    else:
-        image_url = sys.argv[1]
-        output_file = sys.argv[2] if len(sys.argv) > 2 else "ascii_image.txt"
-        main(image_url, output_file)
+    # Running the script with the default URL and output file
+    main()
         
