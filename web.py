@@ -1,97 +1,53 @@
-import requests
 from PIL import Image
-import sys
-from colorama import Fore, init
-from io import BytesIO
+from colorama import Fore, Back, Style, init
 
 # Initialize colorama
 init(autoreset=True)
 
-# List of ASCII characters from light to dark
-ASCII_CHARS = ["@", "#", "8", "&", "%", "$", "?", "*", "+", ";", ":", ",", "."]
+# ASCII characters used for the conversion (darkest to lightest)
+ASCII_CHARS = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.']
 
-# Function to resize image while maintaining aspect ratio
-def resize_image(image, new_width=100):
-    width, height = image.size
-    aspect_ratio = height / width
-    new_height = int(new_width * aspect_ratio)
-    resized_image = image.resize((new_width, new_height))
-    return resized_image
-
-# Function to convert each pixel to grayscale and then to a corresponding ASCII character
+# Function to map pixel brightness to ASCII characters
 def pixel_to_ascii(pixel):
     r, g, b = pixel
     brightness = (r + g + b) // 3
-    ascii_char = ASCII_CHARS[brightness * len(ASCII_CHARS) // 256]
-    return ascii_char
+    ascii_index = int((brightness / 255) * (len(ASCII_CHARS) - 1))
+    return ASCII_CHARS[ascii_index]
 
-# Function to get the closest color in the terminal (for colorama)
-def get_terminal_color(r, g, b):
-    if r > g and r > b:
-        return Fore.RED
-    elif g > r and g > b:
-        return Fore.GREEN
-    elif b > r and b > g:
-        return Fore.BLUE
-    else:
-        return Fore.WHITE
-
-# Function to download and process the image from the URL or file path
-def download_image(image_path):
-    if image_path.startswith('http'):  # If it's a URL
-        response = requests.get(image_path)
-        if response.status_code == 200:
-            image = Image.open(BytesIO(response.content))
-            return image
-        else:
-            raise Exception(f"Failed to download image, status code: {response.status_code}")
-    else:  # If it's a local file path
-        image = Image.open(image_path)
-        return image
-
-# Function to convert image to ASCII art
-def image_to_ascii(image, new_width=100):
-    image = resize_image(image, new_width)
+# Function to convert image to ASCII art with color codes using colorama
+def image_to_colored_ascii(image_path, output_file='output.txt', new_width=100):
+    # Open the image file
+    img = Image.open(image_path)
     
-    ascii_image = []
-    ascii_image_plain = []  # For saving plain ASCII art without colors
+    # Calculate the height ratio
+    width, height = img.size
+    ratio = height / width
+    new_height = int(new_width * ratio)
     
-    for y in range(image.height):
-        row = ""
-        row_plain = ""
-        for x in range(image.width):
-            pixel = image.getpixel((x, y))
-            ascii_char = pixel_to_ascii(pixel)
-            color = get_terminal_color(*pixel)
-            row += color + ascii_char
-            row_plain += ascii_char
-        ascii_image.append(row)
-        ascii_image_plain.append(row_plain)
+    # Resize the image
+    img = img.resize((new_width, new_height))
     
-    return "\n".join(ascii_image), "\n".join(ascii_image_plain)
+    # Convert the image to RGB mode if not already
+    img = img.convert('RGB')
+    
+    # Open the output file to save the colorized ASCII
+    with open(output_file, 'w') as file:
+        for y in range(new_height):
+            for x in range(new_width):
+                pixel = img.getpixel((x, y))
+                r, g, b = pixel
+                ascii_char = pixel_to_ascii(pixel)
+                
+                # Using colorama to apply the color
+                color_code = f"{Fore.rgb(r, g, b)}{ascii_char}"
+                
+                # Write the colorized ASCII character to the file
+                file.write(f"{color_code}")
+            file.write('\n')
 
-# Function to save ASCII art to a text file
-def save_ascii_to_file(ascii_art, filename="vanilla.txt"):
-    with open(filename, "w") as file:
-        file.write(ascii_art)
-    print(f"ASCII art saved to {filename}")
+    print(f"Colored ASCII art has been saved to {output_file}")
 
-# Main function to run the program
-def main(image_path="https://s3.mcjars.app/icons/vanilla.png", output_file="vanilla.txt"):
-    try:
-        image = download_image(image_path)
-        ascii_image_colored, ascii_image_plain = image_to_ascii(image)
-        
-        # Print colored ASCII art in the terminal
-        print(ascii_image_colored)
-        
-        # Save plain ASCII art (without color) to a file
-        save_ascii_to_file(ascii_image_plain, output_file)
-        
-    except Exception as e:
-        print(f"Error: {e}")
-
-if __name__ == "__main__":
-    # Running the script with the default URL and output file
-    main()
-        
+# Usage example:
+image_path = 'your_image_path_here.jpg'  # Replace with your image path
+image_to_colored_ascii(image_path, 'colored_output.txt', 150)
+                
