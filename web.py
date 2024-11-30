@@ -1,7 +1,7 @@
 from PIL import Image
-from colorama import Fore, Back, Style, init
+from colorama import Fore, init
 
-# Initialize colorama
+# Initialize colorama to handle terminal colors
 init(autoreset=True)
 
 # ASCII characters used for the conversion (darkest to lightest)
@@ -17,7 +17,11 @@ def pixel_to_ascii(pixel):
 # Function to convert image to ASCII art with color codes using colorama
 def image_to_colored_ascii(image_path, output_file='output.txt', new_width=100):
     # Open the image file
-    img = Image.open(image_path)
+    try:
+        img = Image.open(image_path)
+    except Exception as e:
+        print(f"Error opening image: {e}")
+        return
     
     # Calculate the height ratio
     width, height = img.size
@@ -49,5 +53,5 @@ def image_to_colored_ascii(image_path, output_file='output.txt', new_width=100):
 
 # Usage example:
 image_path = 'vanilla.png'  # Replace with your image path
-image_to_colored_ascii(image_path, 'vanilla.txt', 150)
-                
+image_to_colored_ascii(image_path, 'output.txt', 150)
+    
