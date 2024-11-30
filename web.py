@@ -48,6 +48,6 @@ def image_to_colored_ascii(image_path, output_file='output.txt', new_width=100):
     print(f"Colored ASCII art has been saved to {output_file}")
 
 # Usage example:
-image_path = 'your_image_path_here.jpg'  # Replace with your image path
-image_to_colored_ascii(image_path, 'colored_output.txt', 150)
+image_path = 'vanilla.png'  # Replace with your image path
+image_to_colored_ascii(image_path, 'vanilla.txt', 150)
                 
